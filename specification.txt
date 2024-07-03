@@ -1,0 +1,56 @@
+In ECF, a file is composed entirely of "entries", which can be single lines or multiple
+lines, and are separated by newlines. Each entry is an empty line (aka a "blank"), a key-
+value pair (aka a "value"), or a comment. All lines of input text have their leading and
+trailing whitespace trimmed, except for the contents and endings of multiline entries.
+
+A value consists of a key (any key-unique text that doesn't contain newlines or colons),
+then a colon, then (optionally) whitespace, then a value (with no other trailing
+characters). A value can be the text "empty" (non-case-dependant) for an empty value, or
+"true" or "false" (again, non-case-dependant) for a boolean value, or a 64-bit singed
+int, or a 64-bit floating number, or text without any newlines enclosed in quotation
+marks, or a quotation mark followed by any number of lines of text, which is ended by a
+line which contains nothing but a quotation mark.
+
+This last type of value is called a multiline string, and the contents of a multiline
+string are defined as the totality of text between the quotation marks that define the
+start and end of the text, minus one newline delimiter for both the start and the end.
+Also, no escape sequences are recognized by this format, meaning the text value
+"line1\nline1" would be interpreted purely as "line1\nline2". Although, please note that
+these definitions allow quotation marks to be inserted into both single-line and multi-
+line strings, as long as none of the lines of a multiline string are only a quotation mark.
+
+A comment starts with either "#" for a single-line comment, or "##" for a multiline
+comment. Multiline comments work very similarly to multiline strings, with the first and
+last lines containing nothing but "##". And again, '#' characters can be inserted into
+single-line and multi-line comments, as long as none of the lines of a multiline comments
+are "##".
+
+Additional notes:
+- Every invalid line of text should be converted to a comment when parsed.
+- When formatting then parsing a string value which contains a line with only a quotation
+	mark, the re-loaded version of that string will be cut off as if it ends at that line
+	of text, and the rest of the text plus the intended end quote will be marked as
+	comments. This is simply a result of the stated rules, and is something to be
+	considered. If preserving the text is absolutely required, you can preprocess the
+	text when saving or loading, or store the lines as an array of text, or use any other
+	custom solution.
+- When formatting data from a layout and key-value pairs, any pairs whose keys are not
+	specified in the layout should be added to the end of the formatted text
+
+
+
+COMMON PRACTICES
+
+To define namespaces, every key in the namespace should start with the namespace's name,
+directly followed by a period, then directly followed by the key's name. To have nested
+namespaces, just continue adding each namespace's name with a period after each name. For
+example, the key "example key" within the namespace "nested namespace" within the
+namespace "outer namespace" should be "outer namespace.nested namespace.example key".
+
+To define data structures, such as structs, arrays, etc, simply use namespaces. For
+example, a list of customers should be defined as follows:
+
+customers.0.name: "example customer 1"
+customers.0.id: 1234
+customers.1.name: "example customer 2"
+customers.1.id: 4321
