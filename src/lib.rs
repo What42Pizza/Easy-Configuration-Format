@@ -82,13 +82,14 @@ use std::collections::{HashMap, HashSet};
 
 
 /// Converts a settings file into a layout + values, opposite of `format_settings()`
-pub fn parse_settings(contents: impl AsRef<str>) -> (Vec<LayoutEntry>, HashMap<String, Value>, Vec<ParseEntryError>) {
+pub fn parse_settings<T>(contents: impl AsRef<str>, update_fns: &[fn(&mut HashMap<String, Value>, &T)], args: &T) -> (File, Vec<ParseEntryError>) {
 	let mut layout = vec!();
 	let mut values = HashMap::new();
 	let mut errors = vec!();
 	
 	let lines = contents.as_ref().split('\n').collect::<Vec<_>>();
-	let mut line_i = 0;
+	let version = get_file_version(lines[0]);
+	let mut line_i = 1;
 	loop {
 		let result = parse_line(&lines, &mut line_i, &mut layout, &mut values);
 		if let Err(err) = result {
@@ -99,7 +100,31 @@ pub fn parse_settings(contents: impl AsRef<str>) -> (Vec<LayoutEntry>, HashMap<S
 		if line_i >= lines.len() {break;}
 	}
 	
-	(layout, values, errors)
+	if let Some(version) = version {
+		for update_fn in &update_fns[version - 1 ..] {
+			(update_fn)(&mut values, args);
+		}
+	} else {
+		errors.push(ParseEntryError {
+			line: 0,
+			message: String::from("Could not find version, assuming version is latest"),
+		});
+	}
+	
+	(File {
+		values,
+		layout,
+		version: update_fns.len() + 1,
+	}, errors)
+}
+
+
+
+fn get_file_version(first_line: &str) -> Option<usize> {
+	if !first_line.starts_with("format ") {return None;}
+	let format_value_str = first_line[7..].trim();
+	let format_value = format_value_str.parse::<usize>();
+	format_value.ok()
 }
 
 
@@ -218,13 +243,12 @@ fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, P
 
 
 /// Converts a layout plus values into a formatted settings file, opposite of `parse_settings()`
-pub fn format_settings(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<String, Value>) -> (String, Vec<FormatEntryError>) {
-	let layout = layout.as_ref();
-	let mut output = String::new();
-	if layout.is_empty() {return (output, vec!());}
+pub fn format_settings(file: &File) -> (String, Vec<FormatEntryError>) {
+	let mut output = format!("format {}\n", file.version);
+	if file.layout.is_empty() {return (output, vec!());}
 	let mut errors = vec!();
 	let mut printed_keys = HashSet::new();
-	for entry in layout {
+	for entry in &file.layout {
 		match entry {
 			LayoutEntry::Empty => {}
 			LayoutEntry::Comment (comment) => {
@@ -240,7 +264,7 @@ pub fn format_settings(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<Strin
 			LayoutEntry::Key (key) => {
 				output += key;
 				output += ": ";
-				let value = values.get(key);
+				let value = file.get(key);
 				if let Some(value) = value {
 					output += &value.format();
 				} else {
@@ -252,7 +276,7 @@ pub fn format_settings(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<Strin
 		}
 		output.push('\n');
 	}
-	for (key, value) in values {
+	for (key, value) in &file.values {
 		if printed_keys.contains(key) {continue;}
 		output += key;
 		output += ": ";

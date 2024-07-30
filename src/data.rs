@@ -1,3 +1,33 @@
+use std::{collections::HashMap, ops::{Deref, DerefMut}};
+
+
+
+/// Holds data for a file's contents, layout, and version
+#[derive(Debug, Clone, PartialEq)]
+pub struct File {
+	/// Contents of file
+	pub values: HashMap<String, Value>,
+	/// Layout of file
+	pub layout: Vec<LayoutEntry>,
+	/// Version of file (strongly recommended to hold the latest version of settings that your application supports)
+	pub version: usize,
+}
+
+impl Deref for File {
+	type Target = HashMap<String, Value>;
+	fn deref(&self) -> &Self::Target {
+		&self.values
+	}
+}
+
+impl DerefMut for File {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.values
+	}
+}
+
+
+
 /// Describes the layout of a loaded settings file
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayoutEntry {
