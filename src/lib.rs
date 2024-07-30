@@ -47,21 +47,31 @@
 //! example nested array.1.friends.1: "person 2"
 //! ```
 //! 
+//! You can find a slightly more formal specification [here](https://github.com/What42Pizza/Easy-Configuration-Format/blob/main/specification.txt).
+//! 
 //! <br>
 //! <br>
 //! <br>
 //! 
 //! A settings file is intended to be represented in code using two main values: the layout vec and the values hashmap. The layout vec describes the layout of the settings file according to how it was when it was parsed, and modifying it at runtime isn't recommended (because there should no need to do so). The values hashmap simply stores the key-value (String, ecf::Value) pairs, and this is what your code will interact with.
 //! 
-//! Also, I strongly recommend using an automatic format upgrading system like what's shown in the example.
+//! Also, I strongly recommend using an automatic format upgrading system like what's shown in the [example](https://github.com/What42Pizza/Easy-Configuration-Format/blob/main/examples/main.rs).
 //! 
 //! <br>
 //! <br>
 
 
 
+#![warn(missing_docs)]
+
+
+
+/// All the data types used by this crate
 pub mod data;
 pub use data::*;
+/// Utility functions for easy value management
+pub mod utils;
+pub use utils::*;
 
 
 
@@ -71,7 +81,8 @@ use std::collections::{HashMap, HashSet};
 
 
 
-pub fn parse_str(contents: impl AsRef<str>) -> (Vec<LayoutEntry>, HashMap<String, Value>, Vec<ParseEntryError>) {
+/// Converts a settings file into a layout + values, opposite of `format_settings()`
+pub fn parse_settings(contents: impl AsRef<str>) -> (Vec<LayoutEntry>, HashMap<String, Value>, Vec<ParseEntryError>) {
 	let mut layout = vec!();
 	let mut values = HashMap::new();
 	let mut errors = vec!();
@@ -93,7 +104,7 @@ pub fn parse_str(contents: impl AsRef<str>) -> (Vec<LayoutEntry>, HashMap<String
 
 
 
-pub fn parse_line(
+fn parse_line(
 	lines: &[&str],
 	line_i: &mut usize,
 	layout: &mut Vec<LayoutEntry>,
@@ -129,7 +140,7 @@ pub fn parse_line(
 
 
 
-pub fn parse_multiline_comment(
+fn parse_multiline_comment(
 	lines: &[&str],
 	line_i: &mut usize,
 ) -> Result<LayoutEntry, ParseEntryError> {
@@ -152,10 +163,9 @@ pub fn parse_multiline_comment(
 
 
 
-pub fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result<Value, ParseEntryError> {
+fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result<Value, ParseEntryError> {
 	let line = lines[*line_i].trim();
 	
-	// find start of value
 	let value_start_i =
 		line.char_indices()
 		.skip(colon_index + 1)
@@ -186,7 +196,7 @@ pub fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Re
 
 
 
-pub fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, ParseEntryError> {
+fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, ParseEntryError> {
 	let start_line_i = *line_i;
 	let mut output = String::new();
 	*line_i += 1;
@@ -207,7 +217,8 @@ pub fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Valu
 
 
 
-pub fn format_data(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<String, Value>) -> (String, Vec<FormatEntryError>) {
+/// Converts a layout plus values into a formatted settings file, opposite of `parse_settings()`
+pub fn format_settings(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<String, Value>) -> (String, Vec<FormatEntryError>) {
 	let layout = layout.as_ref();
 	let mut output = String::new();
 	if layout.is_empty() {return (output, vec!());}
@@ -250,4 +261,48 @@ pub fn format_data(layout: impl AsRef<[LayoutEntry]>, values: &HashMap<String, V
 	}
 	output.pop();
 	(output, errors)
+}
+
+
+
+
+
+/// Automatically merge new setting values with existing setting values
+pub fn merge_values(existing_values: &mut HashMap<String, Value>, new_values: &HashMap<String, Value>, merge_options: MergeOptions) {
+	match merge_options {
+		MergeOptions::UpdateOnly => {
+			for (key, value) in new_values {
+				if existing_values.contains_key(key) {
+					existing_values.insert(key.clone(), value.clone());
+				}
+			}
+		}
+		MergeOptions::UpdateAndAdd => {
+			for (key, value) in new_values {
+				existing_values.insert(key.clone(), value.clone());
+			}
+		}
+		MergeOptions::AddOnly => {
+			for (key, value) in new_values {
+				if !existing_values.contains_key(key) {
+					existing_values.insert(key.clone(), value.clone());
+				}
+			}
+		}
+		MergeOptions::FullyReplace => {
+			*existing_values = new_values.clone();
+		}
+	}
+}
+
+/// Used with `merge_values()`
+pub enum MergeOptions {
+	/// Only Update the values that already exist in the hashmap
+	UpdateOnly,
+	/// Update the values that already exist in the hashmap, and add any new key-value pairs that didn't exist
+	UpdateAndAdd,
+	/// Only add key-value pairs that didn't exist in the hashmap
+	AddOnly,
+	/// Simple replace the existing hashmap with the new hashmap
+	FullyReplace,
 }

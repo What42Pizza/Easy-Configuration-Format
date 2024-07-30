@@ -1,3 +1,5 @@
+SETTINGS FORMAT: 1
+
 example key: "example value"
 
 example blank: empty
