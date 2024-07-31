@@ -8,11 +8,10 @@ example int: 3
 example float: 3.5
 example bool: true
 example multiline: "
-first line (#0)
-also, because of how strings are defined, you can have " characters inside a string with
-no escape codes needed
-last line (#3)
-"
+"first line (#0)
+"also, because of how strings are defined, you can have " characters inside a string with
+"no escape codes needed
+"last line (#3)
 
 example namespace.example key: "example value 2"
 # "namespaces" are entirely made up, there's no direct support for them and they're just
@@ -52,11 +51,8 @@ invalid key "doesn't have any colon"
 invalid value 1: "missing an ending quote
 invalid value 2: missing a starting quote"
 invalid value 3: missing both quotes
+# empty multiline strings aren't allowed:
 invalid value 4: "
-missing an ending quote again
-invalid value 5: "
-invalid quote again, there's a space after the quotation mark
-" 
 
 invalid value 6: .3
 
@@ -67,4 +63,4 @@ invalid multiline comment, only these two lines will be commented because of thi
 
 # single-line comments cannot be invalid!
 
-working key: "and even after all that, it still parses and reformats continued data"
+working key: "and even after all that, it still parses (and reformats) continued data!"

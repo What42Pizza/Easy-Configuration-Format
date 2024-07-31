@@ -88,7 +88,7 @@ pub fn parse_settings<T>(contents: impl AsRef<str>, update_fns: &[fn(&mut HashMa
 	let mut errors = vec!();
 	
 	let lines = contents.as_ref().split('\n').collect::<Vec<_>>();
-	let version = get_file_version(lines[0]);
+	let version = get_file_version(lines[0].trim());
 	let mut line_i = 1;
 	loop {
 		let result = parse_line(&lines, &mut line_i, &mut layout, &mut values);
@@ -136,25 +136,25 @@ fn parse_line(
 	values: &mut HashMap<String, Value>,
 ) -> Result<(), ParseEntryError> {
 	
-	let line = lines[*line_i].trim();
-	if line.is_empty() {
+	let line_trimmed = lines[*line_i].trim();
+	if line_trimmed.is_empty() {
 		layout.push(LayoutEntry::Empty);
 		return Ok(());
 	}
 	
-	if line == "##" {
+	if line_trimmed == "##" {
 		layout.push(parse_multiline_comment(lines, line_i)?);
 		return Ok(());
 	}
-	if line.starts_with("#") {
-		layout.push(LayoutEntry::Comment (line[1..].to_string()));
+	if line_trimmed.starts_with("#") {
+		layout.push(LayoutEntry::Comment (line_trimmed[1..].to_string()));
 		return Ok(());
 	}
 	
-	let colon_index = line.find(':');
+	let colon_index = line_trimmed.find(':');
 	let Some(colon_index) = colon_index else {return Err(ParseEntryError::new(*line_i, "No colon (':') was found, either add a colon after the key or mark this as a comment."));};
 	if colon_index == 0 {return Err(ParseEntryError::new(*line_i, "Lines cannot start with a colon."));}
-	let key = &line[..colon_index];
+	let key = &line_trimmed[..colon_index];
 	if values.contains_key(key) {return Err(ParseEntryError::new(*line_i, format!("Key \"{key}\" is already defined.")));}
 	let value = parse_value(lines, line_i, colon_index)?;
 	layout.push(LayoutEntry::Key (key.to_string()));
@@ -173,7 +173,7 @@ fn parse_multiline_comment(
 	let start_line_i = *line_i;
 	let mut output = String::new();
 	*line_i += 1;
-	while lines[*line_i] != "##" {
+	while lines[*line_i].trim() != "##" {
 		output += lines[*line_i];
 		output.push('\n');
 		*line_i += 1;
@@ -189,15 +189,15 @@ fn parse_multiline_comment(
 
 
 fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result<Value, ParseEntryError> {
-	let line = lines[*line_i].trim();
+	let line_trimmed = lines[*line_i].trim();
 	
 	let value_start_i =
-		line.char_indices()
+		line_trimmed.char_indices()
 		.skip(colon_index + 1)
 		.find(|(_i, c)| !c.is_whitespace());
 	let Some((value_start_i, _c)) = value_start_i else {return Err(ParseEntryError::new(*line_i, "No value was found for this key (if this is meant to be empty, please set the value as 'empty')."));};
 	
-	let value = &line[value_start_i..];
+	let value = &line_trimmed[value_start_i..];
 	match &*value.to_lowercase() {
 		"empty" => return Ok(Value::Empty),
 		"true" => return Ok(Value::Bool (true)),
@@ -222,19 +222,22 @@ fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result
 
 
 fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, ParseEntryError> {
-	let start_line_i = *line_i;
 	let mut output = String::new();
+	let start_i = *line_i;
 	*line_i += 1;
-	while lines[*line_i] != "\"" {
-		output += lines[*line_i];
+	let mut curr_line = lines[*line_i].trim_start();
+	while curr_line.chars().next() == Some('"') {
+		output += &curr_line[1..];
 		output.push('\n');
 		*line_i += 1;
-		if *line_i == lines.len() {
-			*line_i = start_line_i;
-			return Err(ParseEntryError::new(start_line_i, "Could not find an end of this multiline string. To end a multiline string, the last line should be nothing but a quotation mark (\")."));
-		}
+		if *line_i == lines.len() {break;}
+		curr_line = lines[*line_i].trim_start();
 	}
+	*line_i -= 1;
 	output.pop();
+	if *line_i == start_i {
+		return Err(ParseEntryError::new(start_i, String::from("Invalid value, multiline strings cannot be empty")));
+	}
 	Ok(Value::String (output))
 }
 

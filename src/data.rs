@@ -61,7 +61,19 @@ impl Value {
 	pub fn format(&self) -> String {
 		match self {
 			Self::Empty => String::from("empty"),
-			Self::String (string_value) => format!("\"{string_value}\""),
+			Self::String (string_value) => {
+				if string_value.find("\n").is_some() {
+					let mut output = String::from("\"\n");
+					for line in string_value.split('\n') {
+						output.push('"');
+						output += line;
+						output.push('\n');
+					}
+					output
+				} else {
+					format!("\"{string_value}\"")
+				}
+			}
 			Self::I64 (i64_value) => i64_value.to_string(),
 			Self::F64 (f64_value) => f64_value.to_string(),
 			Self::Bool (true) => String::from("true"),

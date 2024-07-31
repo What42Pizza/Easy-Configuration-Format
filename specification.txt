@@ -1,9 +1,13 @@
 ECF (Easy Configuration Format) Specification
 
-In ECF, a file is composed of "entries", where each entry is either an empty line, a key-
-value pair (aka a "setting"), or a comment. All lines of input text have their leading
-and trailing whitespace trimmed, except for the contents of multiline string values,
-where only the leading whitespace is trimmed.
+In ECF, a file is started with a format specifier, followed by any number of "entries",
+where each entry is either an empty line, a key-value pair (aka a "setting"), or a
+comment. All lines of input text have their leading and trailing whitespace trimmed,
+except for the contents of multiline string values, where only the leading whitespace is
+trimmed, and the contents of multiline comments, where no whitespace is trimmed.
+
+A format specifier is a line of text that starts with "format " and is followed by an
+integer that defined that version of the file's data.
 
 A setting entry consists of a key (any key-unique text that doesn't contain any newlines
 or colons), then a colon, then (optionally) whitespace, then a value (with no other
