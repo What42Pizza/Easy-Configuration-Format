@@ -27,7 +27,7 @@ comment. Multiline comments start and end with lines which are nothing but "##",
 everything between those two lines are the contents of the comment.
 
 Additional notes:
-- Every invalid line of text should be converted to a singl-line comment when parsed.
+- Every invalid line of text should be converted to a single-line comment when parsed.
 - When formatting data from a layout and key-value pairs, any pairs whose keys are not
 	specified in the layout should be added to the end of the formatted text
 

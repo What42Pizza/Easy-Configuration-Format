@@ -146,8 +146,8 @@ fn parse_line(
 		layout.push(parse_multiline_comment(lines, line_i)?);
 		return Ok(());
 	}
-	if line_trimmed.starts_with("#") {
-		layout.push(LayoutEntry::Comment (line_trimmed[1..].to_string()));
+	if let Some(comment) = line_trimmed.strip_prefix("#") {
+		layout.push(LayoutEntry::Comment (comment.to_string()));
 		return Ok(());
 	}
 	
@@ -206,7 +206,7 @@ fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result
 		_ => {}
 	}
 	let first_char = value.chars().next().unwrap(); // safety: value cannot be empty because it has to have non-whitespace char(s)
-	if first_char.is_digit(10) {
+	if first_char.is_ascii_digit() {
 		if let Ok(i64_value) = value.parse::<i64>() {return Ok(Value::I64 (i64_value));}
 		if let Ok(f64_value) = value.parse::<f64>() {return Ok(Value::F64 (f64_value));}
 	}
@@ -226,7 +226,7 @@ fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, P
 	let start_i = *line_i;
 	*line_i += 1;
 	let mut curr_line = lines[*line_i].trim_start();
-	while curr_line.chars().next() == Some('"') {
+	while curr_line.starts_with('"') {
 		output += &curr_line[1..];
 		output.push('\n');
 		*line_i += 1;

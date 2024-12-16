@@ -17,7 +17,7 @@ pub fn get_string_mut(setting_name: impl AsRef<str>, settings: &mut HashMap<Stri
 
 /// Returns either the value as an int or a short error message
 pub fn get_int(setting_name: impl AsRef<str>, settings: &HashMap<String, Value>) -> Result<i64, String> {
-	get_value_as_type(setting_name, settings).map(|v| *v)
+	get_value_as_type(setting_name, settings).copied()
 }
 
 /// Returns either the value as an int or a short error message
@@ -29,7 +29,7 @@ pub fn get_int_mut(setting_name: impl AsRef<str>, settings: &mut HashMap<String,
 
 /// Returns either the value as an float or a short error message
 pub fn get_float(setting_name: impl AsRef<str>, settings: &HashMap<String, Value>) -> Result<f64, String> {
-	get_value_as_type(setting_name, settings).map(|v| *v)
+	get_value_as_type(setting_name, settings).copied()
 }
 
 /// Returns either the value as an float or a short error message
@@ -41,7 +41,7 @@ pub fn get_float_mut(setting_name: impl AsRef<str>, settings: &mut HashMap<Strin
 
 /// Returns either the value as an bool or a short error message
 pub fn get_bool(setting_name: impl AsRef<str>, settings: &HashMap<String, Value>) -> Result<bool, String> {
-	get_value_as_type(setting_name, settings).map(|v| *v)
+	get_value_as_type(setting_name, settings).copied()
 }
 
 /// Returns either the value as an bool or a short error message
@@ -82,7 +82,7 @@ create_get_macro!(get_bool_mut, a Bool);
 
 
 /// Generic function for getting a setting value as a specific type
-pub fn get_value_as_type<'a, T: FromEcfValue>(setting_name: impl AsRef<str>, settings: &'a HashMap<String, Value>) -> Result<&'a T, String> {
+pub fn get_value_as_type<T: FromEcfValue>(setting_name: impl AsRef<str>, settings: &HashMap<String, Value>) -> Result<&T, String> {
 	let setting_name = setting_name.as_ref();
 	let Some(value) = settings.get(setting_name) else {
 		return Err(format!("could not find setting \"{setting_name}\""));
@@ -94,7 +94,7 @@ pub fn get_value_as_type<'a, T: FromEcfValue>(setting_name: impl AsRef<str>, set
 }
 
 /// Mutable version of get_value_as_type()
-pub fn get_value_as_type_mut<'a, T: FromEcfValueMut>(setting_name: impl AsRef<str>, settings: &'a mut HashMap<String, Value>) -> Result<&'a mut T, String> {
+pub fn get_value_as_type_mut<T: FromEcfValueMut>(setting_name: impl AsRef<str>, settings: &mut HashMap<String, Value>) -> Result<&mut T, String> {
 	let setting_name = setting_name.as_ref();
 	let Some(value) = settings.get_mut(setting_name) else {
 		return Err(format!("could not find setting \"{setting_name}\""));
@@ -113,20 +113,20 @@ pub trait FromEcfValue: Sized {
 	/// Name of the generic type, used for error messages, needs to be singular and uppercase (example: "a String")
 	const TYPE_NAME_SINGULAR: &'static str;
 	/// Main functionality
-	fn from_ecf_value<'a>(input: &'a Value) -> Option<&'a Self>;
+	fn from_ecf_value(input: &Value) -> Option<&Self>;
 }
 
 /// Mutable version of FromEcfValue
 pub trait FromEcfValueMut: FromEcfValue {
 	/// Mutable version of FromEcfValue::from_ecf_value()
-	fn from_ecf_value_mut<'a>(input: &'a mut Value) -> Option<&'a mut Self>;
+	fn from_ecf_value_mut(input: &mut Value) -> Option<&mut Self>;
 }
 
 
 
 impl FromEcfValue for String {
 	const TYPE_NAME_SINGULAR: &'static str = "a String";
-	fn from_ecf_value<'a>(input: &'a Value) -> Option<&Self> {
+	fn from_ecf_value(input: &Value) -> Option<&Self> {
 		if let Value::String (input_string) = input {
 			Some(input_string)
 		} else {
@@ -137,7 +137,7 @@ impl FromEcfValue for String {
 
 impl FromEcfValue for i64 {
 	const TYPE_NAME_SINGULAR: &'static str = "an Int";
-	fn from_ecf_value<'a>(input: &'a Value) -> Option<&Self> {
+	fn from_ecf_value(input: &Value) -> Option<&Self> {
 		if let Value::I64 (input_i64) = input {
 			Some(input_i64)
 		} else {
@@ -148,7 +148,7 @@ impl FromEcfValue for i64 {
 
 impl FromEcfValue for f64 {
 	const TYPE_NAME_SINGULAR: &'static str = "a Float";
-	fn from_ecf_value<'a>(input: &'a Value) -> Option<&Self> {
+	fn from_ecf_value(input: &Value) -> Option<&Self> {
 		if let Value::F64 (input_f64) = input {
 			Some(input_f64)
 		} else {
@@ -159,7 +159,7 @@ impl FromEcfValue for f64 {
 
 impl FromEcfValue for bool {
 	const TYPE_NAME_SINGULAR: &'static str = "a Bool";
-	fn from_ecf_value<'a>(input: &'a Value) -> Option<&Self> {
+	fn from_ecf_value(input: &Value) -> Option<&Self> {
 		if let Value::Bool (input_bool) = input {
 			Some(input_bool)
 		} else {
@@ -171,7 +171,7 @@ impl FromEcfValue for bool {
 
 
 impl FromEcfValueMut for String {
-	fn from_ecf_value_mut<'a>(input: &'a mut Value) -> Option<&'a mut Self> {
+	fn from_ecf_value_mut(input: &mut Value) -> Option<&mut Self> {
 		if let Value::String (input_string) = input {
 			Some(input_string)
 		} else {
@@ -181,7 +181,7 @@ impl FromEcfValueMut for String {
 }
 
 impl FromEcfValueMut for i64 {
-	fn from_ecf_value_mut<'a>(input: &'a mut Value) -> Option<&'a mut Self> {
+	fn from_ecf_value_mut(input: &mut Value) -> Option<&mut Self> {
 		if let Value::I64 (input_i64) = input {
 			Some(input_i64)
 		} else {
@@ -191,7 +191,7 @@ impl FromEcfValueMut for i64 {
 }
 
 impl FromEcfValueMut for f64 {
-	fn from_ecf_value_mut<'a>(input: &'a mut Value) -> Option<&'a mut Self> {
+	fn from_ecf_value_mut(input: &mut Value) -> Option<&mut Self> {
 		if let Value::F64 (input_f64) = input {
 			Some(input_f64)
 		} else {
@@ -201,7 +201,7 @@ impl FromEcfValueMut for f64 {
 }
 
 impl FromEcfValueMut for bool {
-	fn from_ecf_value_mut<'a>(input: &'a mut Value) -> Option<&'a mut Self> {
+	fn from_ecf_value_mut(input: &mut Value) -> Option<&mut Self> {
 		if let Value::Bool (input_bool) = input {
 			Some(input_bool)
 		} else {

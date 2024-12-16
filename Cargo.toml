@@ -6,5 +6,5 @@ license = "MIT"
 description = "Simple and intuitive file format for settings / configurations"
 repository = "https://github.com/What42Pizza/rust-easy-configuration-format"
 readme = "readme.md"
-keywords = []
-categories = []
+keywords = ["config", "configuration", "settings"]
+categories = ["configuration", "settings"]

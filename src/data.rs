@@ -62,7 +62,7 @@ impl Value {
 		match self {
 			Self::Empty => String::from("empty"),
 			Self::String (string_value) => {
-				if string_value.find("\n").is_some() {
+				if string_value.contains("\n") {
 					let mut output = String::from("\"\n");
 					for line in string_value.split('\n') {
 						output.push('"');
