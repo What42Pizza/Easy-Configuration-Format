@@ -107,16 +107,16 @@ impl Value {
 /// Errors while parsing settings
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ParseEntryError {
-	/// Raw line number of invalid entry
+	/// Line number of invalid entry (using 1-based indexing)
 	pub line: usize,
 	/// Error message / reason for being invalid
 	pub message: String,
 }
 
 impl ParseEntryError {
-	pub(crate) fn new(line: usize, message: impl Into<String>) -> Self {
+	pub(crate) fn new(raw_line: usize, message: impl Into<String>) -> Self {
 		Self {
-			line,
+			line: raw_line + 1,
 			message: message.into(),
 		}
 	}
@@ -126,7 +126,7 @@ impl std::error::Error for ParseEntryError {}
 
 impl std::fmt::Display for ParseEntryError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "Invalid configuration entry at line {}: {}", self.line + 1, self.message)
+		write!(f, "Invalid configuration entry at line {}: {}", self.line, self.message)
 	}
 }
 

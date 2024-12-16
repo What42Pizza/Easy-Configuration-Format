@@ -1,13 +1,20 @@
 # Easy Configuration Format
 
-### A settings format that strikes a great balance between usage simplicity and parsing simplicity
+### A settings format that strikes a great balance between usage simplicity and parsing simplicity, with aspects like:
+- Support for strings, ints, float, bools, and comments
+- Elegant error handling, an invalid line in the middle won't ruin everything afterwards and loading then saving a file will always result in a valid ecf file (to see this in action, just run `cargo run --example main`)
+- 'Setting updater' functions have built-in support and encouragement
+- Almost no code (~500 sloc) and no dependencies (other than std)
 
 <br>
 
-Example settings file:
+## Example settings file:
 
-```
+```txt
 format 1
+# This first line defines the version number of your settings file. If you want to update
+# your program's settings, this will allow you to update users' settings file to your
+# newer version
 
 example key: "example value"
 
@@ -18,13 +25,14 @@ example float: 3.5
 example bool: true
 example multiline: "
 "first line (#0)
-"also, because of how strings are defined, you can have " characters inside a string with
+"also, because of how strings are stored, you can have " characters inside a string with
 "no escape codes needed
 "last line (#3)
+example string 2: "you can also put " chars in single-line strings"
 
 example namespace.example key: "example value 2"
-# "namespaces" are entirely made up, there's no direct support for them and they're just
-# a recommended way to structure settings
+# "namespaces" are entirely made up, they're just fancy names but it's still the
+# recommended way to structure settings
 
 # example comment
 
@@ -72,13 +80,15 @@ invalid multiline comment, only these two lines will be commented because of thi
 
 # single-line comments cannot be invalid!
 
-working key: "and even after all that, it still parses (and reformats) continued data!"
+working key: "and even after all that, it can still keep parsing settings!"
 
 ```
 
+### See the specification [Here](specification.txt)
+
 <br>
 
-Example code:
+## Example code:
 
 ```rust
 // load settings
@@ -86,10 +96,10 @@ Example code:
 pub const UPDATER_FUNCTIONS: &[fn(&mut HashMap<String, ecf::Value>, &())] = &[
 	update_1_to_2, // updates from format 1 to format 2
 	// etc
-];
+]; // because there's 1 updater function, the crate will know that the current format version is 2
 
 pub fn update_1_to_2(settings: &mut HashMap<String, ecf::Value>, args: &()) {
-	println!("this example doesn't actually have a format 2, this is just to give an idea of how updates would be done");
+	println!("this example doesn't actually have a format 2, this is just to show how updates would be done");
 }
 
 let (mut ecf_file, errors) = ecf::parse_settings(include_str!("example_settings.txt"), UPDATER_FUNCTIONS, &());

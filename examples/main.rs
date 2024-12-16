@@ -12,13 +12,13 @@ fn main() {
 	pub const UPDATER_FUNCTIONS: &[fn(&mut HashMap<String, ecf::Value>, &())] = &[
 		update_1_to_2, // updates from format 1 to format 2
 		// etc
-	]; // if there's 1 update function, then that automatically means that the current format version is "2"
+	]; // because there's 1 updater function, the crate will know that the current format version is 2
 	
 	pub fn update_1_to_2(settings: &mut HashMap<String, ecf::Value>, args: &()) {
-		println!("this example doesn't actually have a format 2, this is just to give an idea of how updates would be done");
+		println!("this example doesn't actually have a format 2, this is just to show how updates would be done");
 	}
 	
-	let (mut ecf_file, errors) = ecf::parse_settings(include_str!("example_settings.txt"), UPDATER_FUNCTIONS, &());
+	let (mut ecf_file, errors) = ecf::parse_settings(include_str!("example_settings.ecf"), UPDATER_FUNCTIONS, &());
 	
 	// print file data
 	println!("======== Layout: ========");

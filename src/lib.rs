@@ -1,27 +1,38 @@
-//! ## Store, save, and load your data in the most simple way possible.
+//! # Easy Configuration Format
+//! 
+//! ### A settings format that strikes a great balance between usage simplicity and parsing simplicity, with aspects like:
+//! - Support for strings, ints, float, bools, and comments
+//! - Elegant error handling, an invalid line in the middle won't ruin everything afterwards and loading then saving a file will always result in a valid ecf file (to see this in action, just run `cargo run --example main`)
+//! - 'Setting updater' functions have built-in support and encouragement
+//! - Almost no code (~500 sloc) and no dependencies (other than std)
 //! 
 //! <br>
 //! 
 //! ## Example settings file:
 //! 
-//! ```text
+//! ```txt
+//! format 1
+//! # This first line defines the version number of your settings file. If you want to update
+//! # your program's settings, this will allow you to update users' settings file to your
+//! # newer version
+//! 
 //! example key: "example value"
-//!
+//! 
 //! example blank: empty
 //! example string: "not empty"
 //! example int: 3
 //! example float: 3.5
 //! example bool: true
 //! example multiline: "
-//! first line (#0)
-//! also, because of how strings are defined, you can have " characters inside a string with
-//! no escape codes needed
-//! last line (#3)
-//! "
+//! "first line (#0)
+//! "also, because of how strings are stored, you can have " characters inside a string with
+//! "no escape codes needed
+//! "last line (#3)
+//! example string 2: "you can also put " chars in single-line strings"
 //! 
 //! example namespace.example key: "example value 2"
-//! # "namespaces" are entirely made up, there's no direct support for them and they're just
-//! # a recommended way to structure settings
+//! # "namespaces" are entirely made up, they're just fancy names but it's still the
+//! # recommended way to structure settings
 //! 
 //! # example comment
 //! 
@@ -45,9 +56,35 @@
 //! example nested array.1.age: "age 1"
 //! example nested array.1.friends.0: "person 0"
 //! example nested array.1.friends.1: "person 2"
+//! 
+//! 
+//! 
+//! # examples for error handling:
+//! 
+//! example duplicate key: "this key will be kept"
+//! example duplicate key: "this key will be commented"
+//! 
+//! invalid key "doesn't have any colon"
+//! invalid value 1: "missing an ending quote
+//! invalid value 2: missing a starting quote"
+//! invalid value 3: missing both quotes
+//! # empty multiline strings aren't allowed:
+//! invalid value 4: "
+//! 
+//! invalid value 6: .3
+//! 
+//! invalid entry: empty # inline comments aren't allowed
+//! 
+//! ##
+//! invalid multiline comment, only these two lines will be commented because of this
+//! 
+//! # single-line comments cannot be invalid!
+//! 
+//! working key: "and even after all that, it can still keep parsing settings!"
+//! 
 //! ```
 //! 
-//! You can find a slightly more formal specification [here](https://github.com/What42Pizza/Easy-Configuration-Format/blob/main/specification.txt).
+//! ### See the specification [Here](specification.txt)
 //! 
 //! <br>
 //! <br>
@@ -82,7 +119,9 @@ use std::collections::{HashMap, HashSet};
 
 
 /// Converts a settings file into a layout + values, opposite of `format_settings()`
-pub fn parse_settings<T>(contents: impl AsRef<str>, update_fns: &[fn(&mut HashMap<String, Value>, &T)], args: &T) -> (File, Vec<ParseEntryError>) {
+/// 
+/// The generic `T` is for passing generic data to the updater functions
+pub fn parse_settings<T>(contents: impl AsRef<str>, updater_fns: &[fn(&mut HashMap<String, Value>, &T)], args: &T) -> (File, Vec<ParseEntryError>) {
 	let mut layout = vec!();
 	let mut values = HashMap::new();
 	let mut errors = vec!();
@@ -101,30 +140,25 @@ pub fn parse_settings<T>(contents: impl AsRef<str>, update_fns: &[fn(&mut HashMa
 	}
 	
 	if let Some(version) = version {
-		for update_fn in &update_fns[version - 1 ..] {
-			(update_fn)(&mut values, args);
+		for updater_fn in &updater_fns[version - 1 ..] {
+			(updater_fn)(&mut values, args);
 		}
 	} else {
-		errors.push(ParseEntryError {
-			line: 0,
-			message: String::from("Could not find version, assuming version is latest"),
-		});
+		errors.push(ParseEntryError::new(0, "Could not find version, assuming version is latest"));
 	}
 	
 	(File {
 		values,
 		layout,
-		version: update_fns.len() + 1,
+		version: updater_fns.len() + 1,
 	}, errors)
 }
 
 
 
 fn get_file_version(first_line: &str) -> Option<usize> {
-	if !first_line.starts_with("format ") {return None;}
-	let format_value_str = first_line[7..].trim();
-	let format_value = format_value_str.parse::<usize>();
-	format_value.ok()
+	let Some(format_str) = first_line.strip_prefix("format ") else {return None;};
+	format_str.parse::<usize>().ok()
 }
 
 
@@ -179,7 +213,7 @@ fn parse_multiline_comment(
 		*line_i += 1;
 		if *line_i == lines.len() {
 			*line_i = start_line_i;
-			return Err(ParseEntryError::new(start_line_i, "Could not find an end of this multiline comment. To end a multiline comment, the last line should be nothing but '##'."));
+			return Err(ParseEntryError::new(start_line_i, "Could not find an end of this multiline comment. To end a multiline comment, its last line should be nothing but '##'."));
 		}
 	}
 	output.pop();

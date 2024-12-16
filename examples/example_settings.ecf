@@ -1,4 +1,7 @@
 format 1
+# This first line defines the version number of your settings file. If you want to update
+# your program's settings, this will allow you to update users' settings file to your
+# newer version
 
 example key: "example value"
 
@@ -9,9 +12,10 @@ example float: 3.5
 example bool: true
 example multiline: "
 "first line (#0)
-"also, because of how strings are defined, you can have " characters inside a string with
+"also, because of how strings are stored, you can have " characters inside a string with
 "no escape codes needed
 "last line (#3)
+example string 2: "you can also put " chars in single-line strings"
 
 example namespace.example key: "example value 2"
 # "namespaces" are entirely made up, there's no direct support for them and they're just
@@ -47,7 +51,7 @@ example nested array.1.friends.1: "person 2"
 example duplicate key: "this key will be kept"
 example duplicate key: "this key will be commented"
 
-invalid key "doesn't have any colon"
+invalid key "missing a colon"
 invalid value 1: "missing an ending quote
 invalid value 2: missing a starting quote"
 invalid value 3: missing both quotes
@@ -63,4 +67,4 @@ invalid multiline comment, only these two lines will be commented because of thi
 
 # single-line comments cannot be invalid!
 
-working key: "and even after all that, it still parses (and reformats) continued data!"
+working key: "and even after all that, it can still keep parsing settings!"
