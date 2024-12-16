@@ -7,4 +7,4 @@ description = "Simple and intuitive file format for settings / configurations"
 repository = "https://github.com/What42Pizza/rust-easy-configuration-format"
 readme = "readme.md"
 keywords = ["config", "configuration", "settings"]
-categories = ["configuration", "settings"]
+categories = ["config"]
