@@ -92,7 +92,7 @@
 //! 
 //! A settings file is intended to be represented in code using two main values: the layout vec and the values hashmap. The layout vec describes the layout of the settings file according to how it was when it was parsed, and modifying it at runtime isn't recommended (because there should no need to do so). The values hashmap simply stores the key-value (String, ecf::Value) pairs, and this is what your code will interact with.
 //! 
-//! Also, I strongly recommend using an automatic format upgrading system like what's shown in the [example](https://github.com/What42Pizza/Easy-Configuration-Format/blob/main/examples/main.rs).
+//! Also, I strongly recommend using a format updating system like what's shown in the [example](https://github.com/What42Pizza/Easy-Configuration-Format/blob/main/examples/main.rs).
 //! 
 //! <br>
 //! <br>
@@ -101,269 +101,125 @@
 
 #![warn(missing_docs)]
 
+#![feature(anonymous_lifetime_in_impl_trait)]
 
 
-/// All the data types used by this crate
+
+/// This is the main operation of this crate. An ecf File is an instance of a configuration and its formatting.
+pub mod file;
+pub use file::*;
+/// Miscellaneous data used by the crate
 pub mod data;
 pub use data::*;
-/// Utility functions for easy value management
-pub mod utils;
-pub use utils::*;
+/// All errors defined by the crate
+pub mod errors;
+pub use errors::*;
 
 
 
-use std::collections::{HashMap, HashSet};
+/// Slightly easier way to create a new `ecf::Value::Empty`
+pub const fn empty() -> Value {
+	Value::Empty
+}
 
+/// Slightly easier way to create a new `ecf::Value::I64()`
+pub const fn i64(v: i64) -> Value {
+	Value::I64 (v)
+}
 
-
-
-
-/// Converts a settings file into a layout + values, opposite of `format_settings()`
+/// Slightly easier way to create a new `ecf::Value::I64()`
 /// 
-/// The generic `T` is for passing generic data to the updater functions
-pub fn parse_settings<T>(contents: impl AsRef<str>, updater_fns: &[fn(&mut HashMap<String, Value>, &T)], args: &T) -> (File, Vec<ParseEntryError>) {
-	let mut layout = vec!();
-	let mut values = HashMap::new();
-	let mut errors = vec!();
-	
-	let lines = contents.as_ref().split('\n').collect::<Vec<_>>();
-	let version = get_file_version(lines[0].trim());
-	let mut line_i = 1;
-	loop {
-		let result = parse_line(&lines, &mut line_i, &mut layout, &mut values);
-		if let Err(err) = result {
-			layout.push(LayoutEntry::Comment (lines[line_i].to_string()));
-			errors.push(err);
-		}
-		line_i += 1;
-		if line_i >= lines.len() {break;}
-	}
-	
-	if let Some(version) = version {
-		for updater_fn in &updater_fns[version - 1 ..] {
-			(updater_fn)(&mut values, args);
-		}
-	} else {
-		errors.push(ParseEntryError::new(0, "Could not find version, assuming version is latest"));
-	}
-	
-	(File {
-		values,
-		layout,
-		version: updater_fns.len() + 1,
-	}, errors)
+/// This isn't marked as `const` because it gives an error for const trait functions
+pub fn to_i64(v: impl ToI64) -> Value {
+	Value::I64 (v.to_i64())
+}
+
+/// Slightly easier way to create a new `ecf::Value::F64()`
+pub const fn f64(v: f64) -> Value {
+	Value::F64 (v)
+}
+
+/// Slightly easier way to create a new `ecf::Value::F64()`
+/// 
+/// This isn't marked as `const` because it gives an error for const trait functions
+pub fn to_f64(v: impl ToF64) -> Value {
+	Value::F64 (v.to_f64())
+}
+
+/// Slightly easier way to create a new `ecf::Value::Bool()`
+pub const fn bool(v: bool) -> Value {
+	Value::Bool (v)
+}
+
+/// Slightly easier way to create a new `ecf::Value::String()`
+/// 
+/// This isn't marked as `const` because it works with strings
+pub fn string(v: impl ToString) -> Value {
+	Value::String (v.to_string())
 }
 
 
 
-fn get_file_version(first_line: &str) -> Option<usize> {
-	let Some(format_str) = first_line.strip_prefix("format ") else {return None;};
-	format_str.parse::<usize>().ok()
+/// Used for `ecf::to_i64()` overloading
+pub trait ToI64 {
+	/// Purpose of trait
+	fn to_i64(self) -> i64;
 }
 
-
-
-fn parse_line(
-	lines: &[&str],
-	line_i: &mut usize,
-	layout: &mut Vec<LayoutEntry>,
-	values: &mut HashMap<String, Value>,
-) -> Result<(), ParseEntryError> {
-	
-	let line_trimmed = lines[*line_i].trim();
-	if line_trimmed.is_empty() {
-		layout.push(LayoutEntry::Empty);
-		return Ok(());
-	}
-	
-	if line_trimmed == "##" {
-		layout.push(parse_multiline_comment(lines, line_i)?);
-		return Ok(());
-	}
-	if let Some(comment) = line_trimmed.strip_prefix("#") {
-		layout.push(LayoutEntry::Comment (comment.to_string()));
-		return Ok(());
-	}
-	
-	let colon_index = line_trimmed.find(':');
-	let Some(colon_index) = colon_index else {return Err(ParseEntryError::new(*line_i, "No colon (':') was found, either add a colon after the key or mark this as a comment."));};
-	if colon_index == 0 {return Err(ParseEntryError::new(*line_i, "Lines cannot start with a colon."));}
-	let key = &line_trimmed[..colon_index];
-	if values.contains_key(key) {return Err(ParseEntryError::new(*line_i, format!("Key \"{key}\" is already defined.")));}
-	let value = parse_value(lines, line_i, colon_index)?;
-	layout.push(LayoutEntry::Key (key.to_string()));
-	values.insert(key.to_string(), value);
-	
-	Ok(())
-}
-
-
-
-fn parse_multiline_comment(
-	lines: &[&str],
-	line_i: &mut usize,
-) -> Result<LayoutEntry, ParseEntryError> {
-	
-	let start_line_i = *line_i;
-	let mut output = String::new();
-	*line_i += 1;
-	while lines[*line_i].trim() != "##" {
-		output += lines[*line_i];
-		output.push('\n');
-		*line_i += 1;
-		if *line_i == lines.len() {
-			*line_i = start_line_i;
-			return Err(ParseEntryError::new(start_line_i, "Could not find an end of this multiline comment. To end a multiline comment, its last line should be nothing but '##'."));
-		}
-	}
-	output.pop();
-	Ok(LayoutEntry::Comment (output))
-}
-
-
-
-fn parse_value(lines: &[&str], line_i: &mut usize, colon_index: usize) -> Result<Value, ParseEntryError> {
-	let line_trimmed = lines[*line_i].trim();
-	
-	let value_start_i =
-		line_trimmed.char_indices()
-		.skip(colon_index + 1)
-		.find(|(_i, c)| !c.is_whitespace());
-	let Some((value_start_i, _c)) = value_start_i else {return Err(ParseEntryError::new(*line_i, "No value was found for this key (if this is meant to be empty, please set the value as 'empty')."));};
-	
-	let value = &line_trimmed[value_start_i..];
-	match &*value.to_lowercase() {
-		"empty" => return Ok(Value::Empty),
-		"true" => return Ok(Value::Bool (true)),
-		"false" => return Ok(Value::Bool (false)),
-		"\"" => return parse_multiline_string(lines, line_i),
-		_ => {}
-	}
-	let first_char = value.chars().next().unwrap(); // safety: value cannot be empty because it has to have non-whitespace char(s)
-	if first_char.is_ascii_digit() {
-		if let Ok(i64_value) = value.parse::<i64>() {return Ok(Value::I64 (i64_value));}
-		if let Ok(f64_value) = value.parse::<f64>() {return Ok(Value::F64 (f64_value));}
-	}
-	if first_char == '"' {
-		let last_char = value.chars().last().unwrap(); // safety: value is already assumed to have a first char, therefore it also has a last char
-		if last_char != '"' {return Err(ParseEntryError::new(*line_i, "Invalid string, no ending quote found. If this is a single-line string, no characters are allowed after the final quotation mark. If this is meant to be a multi-line string, no characters are allowed after the first quotation mark."))}
-		return Ok(Value::String (value[1 .. value.len()-1].to_string()));
-	}
-	
-	Err(ParseEntryError::new(*line_i, "Invalid value, must be 'empty', 'true', 'false', a valid integer, a valid decimal number, a string enclosed in quotes, or a multiline quote starting with a single '\"' character."))
-}
-
-
-
-fn parse_multiline_string(lines: &[&str], line_i: &mut usize) -> Result<Value, ParseEntryError> {
-	let mut output = String::new();
-	let start_i = *line_i;
-	*line_i += 1;
-	let mut curr_line = lines[*line_i].trim_start();
-	while curr_line.starts_with('"') {
-		output += &curr_line[1..];
-		output.push('\n');
-		*line_i += 1;
-		if *line_i == lines.len() {break;}
-		curr_line = lines[*line_i].trim_start();
-	}
-	*line_i -= 1;
-	output.pop();
-	if *line_i == start_i {
-		return Err(ParseEntryError::new(start_i, String::from("Invalid value, multiline strings cannot be empty")));
-	}
-	Ok(Value::String (output))
-}
-
-
-
-
-
-/// Converts a layout plus values into a formatted settings file, opposite of `parse_settings()`
-pub fn format_settings(file: &File) -> (String, Vec<FormatEntryError>) {
-	let mut output = format!("format {}\n", file.version);
-	if file.layout.is_empty() {return (output, vec!());}
-	let mut errors = vec!();
-	let mut printed_keys = HashSet::new();
-	for entry in &file.layout {
-		match entry {
-			LayoutEntry::Empty => {}
-			LayoutEntry::Comment (comment) => {
-				if comment.contains('\n') {
-					output += "##\n";
-					output += comment;
-					output += "\n##";
-				} else {
-					output.push('#');
-					output += comment;
-				}
-			}
-			LayoutEntry::Key (key) => {
-				output += key;
-				output += ": ";
-				let value = file.get(key);
-				if let Some(value) = value {
-					output += &value.format();
-				} else {
-					errors.push(FormatEntryError::new(key));
-					continue;
-				};
-				printed_keys.insert(key.to_string());
+macro_rules! impl_to_i64 {
+	($impl_type:ty) => {
+		impl ToI64 for $impl_type {
+			fn to_i64(self) -> i64 {
+				self as i64
 			}
 		}
-		output.push('\n');
-	}
-	for (key, value) in &file.values {
-		if printed_keys.contains(key) {continue;}
-		output += key;
-		output += ": ";
-		output += &value.format();
-		output.push('\n');
-	}
-	output.pop();
-	(output, errors)
+	};
 }
 
+impl_to_i64!(i8);
+impl_to_i64!(u8);
+impl_to_i64!(i16);
+impl_to_i64!(u16);
+impl_to_i64!(i32);
+impl_to_i64!(u32);
+impl_to_i64!(i64);
+impl_to_i64!(u64);
+impl_to_i64!(i128);
+impl_to_i64!(u128);
+impl_to_i64!(isize);
+impl_to_i64!(usize);
+impl_to_i64!(f32);
+impl_to_i64!(f64);
 
 
 
-
-/// Automatically merge new setting values with existing setting values
-pub fn merge_values(existing_values: &mut HashMap<String, Value>, new_values: &HashMap<String, Value>, merge_options: MergeOptions) {
-	match merge_options {
-		MergeOptions::UpdateOnly => {
-			for (key, value) in new_values {
-				if existing_values.contains_key(key) {
-					existing_values.insert(key.clone(), value.clone());
-				}
-			}
-		}
-		MergeOptions::UpdateAndAdd => {
-			for (key, value) in new_values {
-				existing_values.insert(key.clone(), value.clone());
-			}
-		}
-		MergeOptions::AddOnly => {
-			for (key, value) in new_values {
-				if !existing_values.contains_key(key) {
-					existing_values.insert(key.clone(), value.clone());
-				}
-			}
-		}
-		MergeOptions::FullyReplace => {
-			*existing_values = new_values.clone();
-		}
-	}
+/// Used for `ecf::to_f64()` overloading
+pub trait ToF64 {
+	/// Purpose of trait
+	fn to_f64(self) -> f64;
 }
 
-/// Used with `merge_values()`
-pub enum MergeOptions {
-	/// Only Update the values that already exist in the hashmap
-	UpdateOnly,
-	/// Update the values that already exist in the hashmap, and add any new key-value pairs that didn't exist
-	UpdateAndAdd,
-	/// Only add key-value pairs that didn't exist in the hashmap
-	AddOnly,
-	/// Simple replace the existing hashmap with the new hashmap
-	FullyReplace,
+macro_rules! impl_to_f64 {
+	($impl_type:ty) => {
+		impl ToF64 for $impl_type {
+			fn to_f64(self) -> f64 {
+				self as f64
+			}
+		}
+	};
 }
+
+impl_to_f64!(i8);
+impl_to_f64!(u8);
+impl_to_f64!(i16);
+impl_to_f64!(u16);
+impl_to_f64!(i32);
+impl_to_f64!(u32);
+impl_to_f64!(i64);
+impl_to_f64!(u64);
+impl_to_f64!(i128);
+impl_to_f64!(u128);
+impl_to_f64!(isize);
+impl_to_f64!(usize);
+impl_to_f64!(f32);
+impl_to_f64!(f64);
