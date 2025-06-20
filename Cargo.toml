@@ -1,10 +1,14 @@
 [package]
 name = "easy-configuration-format"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "MIT"
-description = "A settings format that's just all-around simple"
+description = "A settings format that's all-around simple"
 repository = "https://github.com/What42Pizza/rust-easy-configuration-format"
 readme = "readme.md"
 keywords = ["config", "configuration", "settings"]
 categories = ["config"]
+
+# for examples:
+[dev-dependencies]
+toml = "0.8.23"

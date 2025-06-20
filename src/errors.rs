@@ -108,7 +108,7 @@ impl std::fmt::Display for RetrieveSettingError {
 					2 => write!(f, "{} or {}", expected[0], expected[1])?,
 					n => {
 						for expected_type in expected.iter().take(n - 1) {
-							write!(f, "{}, ", expected_type)?;
+							write!(f, "{expected_type}, ")?;
 						}
 						write!(f, "or {}", expected[n - 1])?;
 					}

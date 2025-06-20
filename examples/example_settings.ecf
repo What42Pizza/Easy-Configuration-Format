@@ -1,7 +1,7 @@
 format 1
-# This first line defines the version number of your settings file. If you want to update
-# your program's settings, this will allow you to update users' settings file to your
-# newer version
+# The first line defines the version number of your settings file.
+# If you want to update your program's settings, this will allow
+# you to update users' settings file to your newer version
 
 example key: "example value"
 
@@ -12,23 +12,24 @@ example float: 3.5
 example bool: true
 example multiline: "
 "first line (#0)
-"also, because of how strings are stored, you can have " characters inside a string with
-"no escape codes needed
+"also, because of how strings are stored, you can have " characters
+"inside a string with no escape codes needed
 "last line (#3)
 example string 2: "you can also put " chars in single-line strings"
 
 example namespace.example key: "example value 2"
-# "namespaces" are entirely made up, there's no direct support for them and they're just
-# a recommended way to structure settings
+# "namespaces" are entirely made up, they're just fancy names, but
+# it's still the recommended way to structure settings
 
 # example comment
 
 ##
 example multiline comment
-just like strings, you can have extra # chars anywhere you want (as long as you don't 
-want one of the lines in a comment to just be "##")
+just like strings, you can have extra # chars anywhere you want
+(expect for two # chars at the start of a line)
 ##
 
+# again, this is nothing but a fancy name, so you can start arrays at 1 if you want
 example array.0: "value 0"
 example array.1: "value 1"
 example array.2: "value 2"
@@ -48,10 +49,10 @@ example nested array.1.friends.1: "person 2"
 
 # examples for error handling:
 
-example duplicate key: "this key will be kept"
-example duplicate key: "this key will be commented"
+example duplicate key: "this setting will be kept"
+example duplicate key: "this setting will be commented"
 
-invalid key "missing a colon"
+invalid key "doesn't have any colon"
 invalid value 1: "missing an ending quote
 invalid value 2: missing a starting quote"
 invalid value 3: missing both quotes
@@ -60,11 +61,11 @@ invalid value 4: "
 
 invalid value 6: .3
 
-invalid entry: empty # inline comments aren't allowed
+invalid entry: empty    # invalid because inline comments aren't allowed
 
 ##
-invalid multiline comment, only these two lines will be commented because of this
+invalid multiline comment (no end)
 
 # single-line comments cannot be invalid!
 
-working key: "and even after all that, it can still keep parsing settings!"
+working key: "and even after all that, it can still parse settings!"

@@ -1,0 +1,61 @@
+# version of your settings file (NOTE: THIS FILE ONLY EXISTS FOR `examples/benchmark.rs`)
+format = 1
+
+example_key = "example value"
+example_blank = "toml doesn't have null"
+example_string = "not empty"
+example_int = 3
+example_float = 3.5
+example_bool = true
+
+example_multiline = """first line (#0)
+also, because of how strings are stored, you can have " characters
+inside a string with no escape codes needed
+last line (#3)"""
+
+example_string_2 = "you can also put \" chars in single-line strings"
+
+[example_namespace]
+example_key = "example value 2"
+# "namespaces" are entirely made up (in ecf), they're just fancy names, but
+# it's still the recommended way to structure settings
+
+# example comment
+
+# example multiline comment
+# just like strings, you can have extra # chars anywhere you want
+# (expect for two # chars at the start of a line)
+
+# again, this is nothing but a fancy name, so you can start arrays at 1 if you want
+example_array = ["value 0", "value 1", "value 2", "value 3"]
+
+[[example_nested_array]]
+name = "person 0"
+age = "age 0"
+friends = ["person 1", "person 2"]
+
+[[example_nested_array]]
+name = "person 1"
+age = "age 1"
+friends = ["person 0", "person 2"]
+
+
+
+# examples for error handling: (can't have actual invalid syntax cause toml SUCKS lol)
+
+# example_duplicate_key = "this setting will be kept"
+# example_duplicate_key = "this setting will be commented"
+
+# invalid key "doesn't have any colon"
+# invalid_value_1 = "missing an ending quote
+# invalid_value_2 = missing a starting quote"
+# invalid_value_3 = missing both quotes
+# invalid_value_4 = "" # empty multiline strings aren't allowed
+
+# invalid_value_6 = .3
+
+# invalid_entry = empty # inline comments aren't allowed
+
+# invalid multiline comment (no end)
+
+working_key = "and even after all that, it can still parse settings!"

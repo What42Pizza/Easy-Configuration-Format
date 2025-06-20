@@ -249,7 +249,7 @@ impl File {
 
 
 fn get_file_version(first_line: &str) -> Option<usize> {
-	let Some(format_str) = first_line.strip_prefix("format ") else {return None;};
+	let format_str = first_line.strip_prefix("format ")?;
 	format_str.parse::<usize>().ok()
 }
 
@@ -278,7 +278,7 @@ fn parse_line(
 	}
 	
 	let colon_index = line_trimmed.find(':');
-	let Some(colon_index) = colon_index else {return Err(ParseEntryError::new(*line_i, "No colon (':') was found, either add a colon after the key or mark this as a comment."));};
+	let Some(colon_index) = colon_index else {return Err(ParseEntryError::new(*line_i, "No colon was found, either add a colon after the key or mark this as a comment."));};
 	if colon_index == 0 {return Err(ParseEntryError::new(*line_i, "Lines cannot start with a colon."));}
 	let key = &line_trimmed[..colon_index];
 	if values.contains_key(key) {return Err(ParseEntryError::new(*line_i, format!("Key \"{key}\" is already defined.")));}
