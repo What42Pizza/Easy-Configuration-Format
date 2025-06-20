@@ -50,11 +50,11 @@ friends = ["person 0", "person 2"]
 # invalid_value_1 = "missing an ending quote
 # invalid_value_2 = missing a starting quote"
 # invalid_value_3 = missing both quotes
-# invalid_value_4 = "" # empty multiline strings aren't allowed
+# invalid_value_4 = .3
 
-# invalid_value_6 = .3
+# invalid_value_5 = "" # empty multiline strings aren't allowed
 
-# invalid_entry = empty # inline comments aren't allowed
+# invalid_entry = empty   # inline comments aren't allowed
 
 # invalid multiline comment (no end)
 

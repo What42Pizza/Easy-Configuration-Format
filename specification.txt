@@ -11,11 +11,12 @@ integer that defines the version of the file's data. This is meant to allow prog
 update settings to newer versions expected by the program.
 
 A setting entry consists of a key (any key-unique text that doesn't contain any newlines
-or colons), then a colon, then (optionally) whitespace, then a value (with no other
-trailing characters). A value can be the text "empty" (non-case-dependant) for an empty
-value, or "true" or "false" (again, non-case-dependant) for a boolean value, or a 64-bit
-singed integer, or a 64-bit floating point number, or text enclosed in quotation marks
-for a single-line string, or just a quotation mark to start a multi-line string.
+or colons), then (optionally) whitespace, then a colon, then (optionally) whitespace,
+then a value (with no other trailing characters). A value can be the text "empty" (non-
+case-dependant) for an empty value, or "true" or "false" (again, non-case-dependant) for
+a boolean value, or a 64-bit singed integer, or a 64-bit floating point number, or text
+enclosed in quotation marks for a single-line string, or just a quotation mark to start a
+multi-line string.
 
 Multiline string values are started with a single quotation mark and are followed by
 lines of text that start (optionally) with whitespace, followed by a single quotation
@@ -30,7 +31,6 @@ everything between those two lines are the contents of the comment.
 Additional notes:
 - Every invalid line of text should be converted to a single-line comment when parsed.
 - No escape sequences are needed for string values
-- The entirety of text between a newline and a colon counts as the key's string
 - When formatting data from a layout and key-value pairs, any pairs whose keys are not
 	specified in the layout should be added to the end of the formatted text
 

@@ -56,12 +56,13 @@ invalid key "doesn't have any colon"
 invalid value 1: "missing an ending quote
 invalid value 2: missing a starting quote"
 invalid value 3: missing both quotes
+invalid value 4: .3
+: "empty keys are not allowed"
+
 # empty multiline strings aren't allowed:
-invalid value 4: "
+invalid value 5: "
 
-invalid value 6: .3
-
-invalid entry: empty    # invalid because inline comments aren't allowed
+invalid setting: empty    # invalid because inline comments aren't allowed
 
 ##
 invalid multiline comment (no end)

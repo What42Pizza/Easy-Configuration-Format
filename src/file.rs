@@ -280,7 +280,7 @@ fn parse_line(
 	let colon_index = line_trimmed.find(':');
 	let Some(colon_index) = colon_index else {return Err(ParseEntryError::new(*line_i, "No colon was found, either add a colon after the key or mark this as a comment."));};
 	if colon_index == 0 {return Err(ParseEntryError::new(*line_i, "Lines cannot start with a colon."));}
-	let key = &line_trimmed[..colon_index];
+	let key = line_trimmed[..colon_index].trim_end();
 	if values.contains_key(key) {return Err(ParseEntryError::new(*line_i, format!("Key \"{key}\" is already defined.")));}
 	let value = parse_value(lines, line_i, colon_index)?;
 	layout.push(LayoutEntry::Key (key.to_string()));
